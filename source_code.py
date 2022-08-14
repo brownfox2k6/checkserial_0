@@ -25,7 +25,7 @@ def QuickReset():
     # Thực hiện việc xoá dữ liệu cũ người dùng nhập trong file input.csv
     try:
         f = open('input.csv', 'w', encoding='utf-8-sig')
-        f.write('Đầu kỳ (BC36 n-1),,,Nhập,,,Xuất,,,So sánh (BC36 n)' + '\n')
+        f.write('Đầu kỳ,,,Nhập,,,Xuất,,,So sánh' + '\n')
         # Cho hai dòng write như này cho đẹp, PEP-8 mà :)
         f.write('Bắt đầu,Kết thúc,,Bắt đầu,Kết thúc,,')
         f.write('Bắt đầu,Kết thúc,,Bắt đầu,Kết thúc')
