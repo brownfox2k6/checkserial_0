@@ -7,14 +7,14 @@ from time import localtime, strftime, time
 
 
 def StartEnd(tpl) -> tuple:
-    cuoiky = ()
+    result = ()
     for item in tpl:
         try:
             start, end = map(int, item.split())
         except ValueError:
             start = end = int(item)
-        cuoiky += (range(start, end+1),)
-    return cuoiky
+        result += (range(start, end+1),)
+    return result
 
 
 def CheckDuplicate(arr, s):
