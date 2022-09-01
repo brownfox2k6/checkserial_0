@@ -1,220 +1,138 @@
-"""
-Thuật toán gọi hàm của chương trình:
-    main()
-        - QuickReset()
-        - Common()
-            + Process()
-        - DigitsSerials()
-            + StartAndEnd()
-            + Common()
-        - CharSetSerials()
-            + Common()
-"""
-
-from csv import reader
 from collections import Counter
-from os import remove
-from time import time
+from os import getpid, system
+from psutil import Process
+from re import search
+from sys import platform
+from time import localtime, strftime, time
 
 
-def QuickReset():
-    '''
-    Hàm này dùng để reset Folder chương trình về
-    trạng thái ban đầu, chưa nhập dữ liệu.
-    '''
-    # Thực hiện việc xoá dữ liệu cũ người dùng nhập trong file input.csv
-    try:
-        f = open('input.csv', 'w', encoding='utf-8-sig')
-        f.write('Đầu kỳ,,,Nhập,,,Xuất,,,So sánh' + '\n')
-        # Cho hai dòng write như này cho đẹp, PEP-8 mà :)
-        f.write('Bắt đầu,Kết thúc,,Bắt đầu,Kết thúc,,')
-        f.write('Bắt đầu,Kết thúc,,Bắt đầu,Kết thúc')
-        f.close()
-    except PermissionError:
-        print('Hãy đóng file <input.csv> trước khi chạy chương trình.')
-    
-    # Xoá file output.csv và log.txt, nếu file không tồn tại thì bỏ qua,
-    # nếu gặp lỗi PermissionError thì yêu cầu đóng file trước.
-    try:
-        remove('output.csv')
-    except FileNotFoundError:
-        pass
-    except PermissionError:
-        print('Hãy đóng file <output.csv> trước khi chạy chương trình.')
-
-    try:
-        remove('log.txt')
-    except FileNotFoundError:
-        pass
-    except PermissionError:
-        print('Hãy đóng file <log.txt> trước khi chạy chương trình')
+def StartEnd(tpl) -> tuple:
+    cuoiky = ()
+    for item in tpl:
+        try:
+            start, end = map(int, item.split())
+        except ValueError:
+            start = end = int(item)
+        cuoiky += (range(start, end+1),)
+    return cuoiky
 
 
-def Process(arr, s):
-    '''
-    Hàm kiểm tra xem mảng có phần tử trùng nhau hay không,
-    nếu trùng thì trả ra những phần tử bị trùng nhau.
-    '''
+def CheckDuplicate(arr, s):
     if len(arr) != len(set(arr)):
-        # cnt là một dict có các key là các phần tử,
-        # các value là số lần xuất hiện của các phần tử trong arr.
-        cnt = Counter(arr)
-        # Nếu key có value > 1 (tức là phần tử bị trùng lặp),
-        # thì in phần tử đó ra,
-        # đồng thời thông báo số lần trùng lặp của phần tử.
-        for key in cnt:
-            if cnt[key] > 1:
-                print('Element {} appears {} times\
-                    in <{}>'.format(key, cnt[key], s), file=log)
-        print(file=log)  # Để một dòng trống cho thoáng :)
-    return set(arr)
+        counter = Counter(arr)
+        for key in counter:
+            if counter[key] > 1:
+                print('Serial {} xuất hiện {} lần ở <{}>'.format(
+                    key, counter[key], s))
+            else:
+                break
+        print()
 
 
-def Common():
-    '''
-    Hàm này là phần chung của hàm DigitsSerials() và hàm CharSetSerials()
-    '''
-    # global dauky, nhap, xuat, sosanh
-    # global set_dauky, set_nhap, set_xuat, set_sosanh
-    set_dauky = Process(dauky, 'Đầu kỳ (BC36 n-1)')
-    set_nhap = Process(nhap, 'Nhập')
-    set_xuat = Process(xuat, 'Xuất')
-    set_sosanh = Process(sosanh, 'So sánh (BC36 n)')
+print('CHƯƠNG TRÌNH CHECK SERIAL')
+with open('input.txt', 'w', encoding='utf-8') as inp:
+    inp.write('--- Đầu kỳ ---\n\n\n')
+    inp.write('--- Nhập ---\n\n\n')
+    inp.write('--- Xuất ---\n\n\n')
+    inp.write('--- So sánh ---\n')
 
-    # Phần cảnh báo
-    # In ra những phần tử thuộc cảnh báo
-    if set_nhap - set_dauky != set_nhap:
-        print('[!]  Có serial vừa có trong <đầu kỳ>\
-            vừa có trong <nhập>', file=log)
-        for item in sorted(list(set_nhap & set_dauky)):
-            print(item, file=log)
-        print(file=log)  # Để một dòng trống cho thoáng :)
+# Tự động mở file <input.txt> cho người dùng nhập
+# Sau khi lưu file và đóng file, chương trình sẽ chạy tiếp
+if platform == 'linux':
+    system('gedit input.txt')
+elif platform == 'win32':
+    system('notepad input.txt')
+elif platform == 'darwin':
+    system('textedit input.txt')
 
-    if set_xuat - set_dauky != set():
-        print('[!]  Có serial có trong <xuất>\
-            nhưng không có trong <đầu kỳ>', file=log)
-        for item in sorted(list(set_xuat-set_dauky)):
-            print(item, file=log)
-        print(file=log)  # Để một dòng trống cho thoáng :)
+# Ghi nhận thời gian bắt đầu thực thi
+execTime = time()
 
-    kq = (set_dauky | set_nhap) - set_xuat
-    thieu = sorted(list(set(kq) - set_sosanh))
-    thua = sorted(list(set_sosanh - set(kq)))
+# Lấy tất cả dòng trong file <input.txt> trừ dòng trống
+with open('input.txt', encoding='utf-8') as inp:
+    data = tuple([x.replace('\n', '') for x in inp.readlines() if x != '\n'])
 
-    cnt_thieu = 0
-    cnt_thua = 0
-    out = open('output.csv', 'w', encoding='utf-8-sig')
-    print('Thiếu,Thừa', file=out)
+dauky = data[1:data.index('--- Nhập ---')]
+nhap = data[data.index('--- Nhập ---')+1:data.index('--- Xuất ---')]
+xuat = data[data.index('--- Xuất ---')+1:data.index('--- So sánh ---')]
+sosanh = data[data.index('--- So sánh ---')+1:]
 
-    for i in range(min(len(thieu), len(thua))):
-        print('{},{}'.format(thieu[i], thua[i]), file=out)
-        cnt_thieu += 1
-        cnt_thua += 1
+# Ghép nối tất cả các serial lại và kiểm tra có xuất hiện chữ cái không,
+# - nếu có, đó là các serial có chữ cái
+# - nếu không, đó là các serial số và chạy hàm <StartEnd>
+data = ''.join(x for x in dauky + nhap + xuat + sosanh)
+if not search('[A-Za-z]', data):
+    dauky = StartEnd(dauky)
+    nhap = StartEnd(nhap)
+    xuat = StartEnd(xuat)
+    sosanh = StartEnd(sosanh)
 
-    if len(thieu) < len(thua):
-        for k in range(i+1, len(thua)):
-            print(',{}'.format(thua[k]), file=out)
-            cnt_thua += 1
+# Kiểm tra xem có các serial trùng lặp trong cùng một phần không
+CheckDuplicate(dauky, 'Đầu kỳ')
+CheckDuplicate(nhap, 'Nhập')
+CheckDuplicate(xuat, 'Xuất')
+CheckDuplicate(sosanh, 'So sánh')
 
-    elif len(thieu) > len(thua):
-        for k in range(i+1, len(thieu)):
-            print('{}'.format(thieu[k]), file=out)
-            cnt_thieu += 1
+# Đưa ra lời nhắc nếu có sự bất thường trong đầu vào
+if set(nhap) & set(dauky) != set():
+    print('[!]  Có serial vừa có trong <đầu kỳ> vừa có trong <nhập>')
+    for item in sorted(set(nhap) & set(dauky)):
+        print(item)
+    print()
 
-    print('[Result]: Thiếu {}, Thừa {}'.format(cnt_thieu, cnt_thua), file=log)
-    inp.close()
-    out.close()
+if set(xuat) - (set(dauky) | set(nhap)) != set():
+    print('[!]  Có serial có trong <xuất>\
+nhưng không có trong <đầu kỳ> và <nhập>')
+    for item in sorted(set(xuat) - (set(dauky) | set(nhap))):
+        print(item)
+    print()
 
+# Cuối kỳ = Đầu kỳ + Nhập - Xuất
+# "Thiếu" là những serial có trong <Cuối kỳ> nhưng không có trong <So sánh>
+# "Thừa" là những serial có trong <So sánh> nhưng không có trong <Cuối kỳ>
+cuoiky = (set(dauky) | set(nhap)) - set(xuat)
+thieu = sorted(set(cuoiky) - set(sosanh))
+thua = sorted(set(sosanh) - set(cuoiky))
+print('[Kết quả]: Thiếu {}, Thừa {}'.format(len(thieu), len(thua)))
 
-def StartAndEnd(a_bdkt, a):
-    # từng item trong mảng a_bdkt có dạng [start, end]
-    # start và end có kiểu là str
-    for item in a_bdkt:
-        start, end = item
-        if end == '':  # Nếu không có giá trị kt thì bd = kt
-            end = start
-        # Thêm các số từ bd tới kt vào mảng a
-        a.extend(range(int(start), int(end) + 1))
-    return a
+# Ghi kết quả ra file <output.txt>
+with open('output.txt', 'w', encoding='utf-8') as out:
+    print('[Hiện tại]:', strftime("%d/%m/%Y %H:%M:%S", localtime()), file=out)
+    out.write('--- Thiếu ---\n')
+    for item in thieu:
+        print(item, file=out)
+    out.write('\n--- Thừa ---\n')
+    for item in thua:
+        print(item, file=out)
 
+# Lấy thời gian thực thi
+execTime = time() - execTime      # Thời gian tính theo giây (s)
+ONE_SECOND = 1
+MILISECONDS_PER_SECOND = 1000     # 1 s = 1000 ms
+if execTime >= ONE_SECOND:
+    execTime = '{:.5f} s'.format(execTime)
+else:
+    execTime = '{:.5f} ms'.format(execTime * MILISECONDS_PER_SECOND)
+print('[Thời gian thực thi]:', execTime)
 
-def DigitsSerials():
-    global inp, dauky, nhap, xuat, sosanh
-    # Khởi tạo mảng cần thiết
-    dauky = []
-    nhap = []
-    xuat = []
-    sosanh = []
-    inp = open('input.csv', encoding='utf-8-sig')
-    # Bỏ hai dòng đầu không đưa vào xử lý
-    inp.readline()
-    inp.readline()
-    r = reader(inp)  # Lấy phần dữ liệu còn lại đưa vào xử lý
-    arr = [row for row in r]
+# Lấy khoảng bộ nhớ đã sử dụng
+execMemory = Process(getpid()).memory_info().rss   # Bộ nhớ tính theo byte (B)
+BYTES_PER_GIGABYTE = 1073741824   # 1 GB = 1024^3 B = 1073741824 B
+BYTES_PER_MEGABYTE = 1048576      # 1 MB = 1024^2 B = 1048576 B
+BYTES_PER_KILOBYTE = 1024         # 1 KB = 1024^1 B = 1024 B
+if execMemory >= BYTES_PER_GIGABYTE:
+    execMemory = '{:.5f} GB'.format(execMemory / BYTES_PER_GIGABYTE)
+elif execMemory >= BYTES_PER_MEGABYTE:
+    execMemory = '{:.5f} MB'.format(execMemory / BYTES_PER_MEGABYTE)
+else:
+    execMemory = '{:.5f} KB'.format(execMemory / BYTES_PER_KILOBYTE)
+print('[Bộ nhớ sử dụng]:', execMemory)
 
-    # Xử lý mảng arr thành 4 mảng như dưới
-    dauky_bdkt = [item[:2] for item in arr if item[0] != '']
-    nhap_bdkt = [item[3:5] for item in arr if item[3] != '']
-    xuat_bdkt = [item[6:8] for item in arr if item[6] != '']
-    sosanh_bdkt = [item[9:] for item in arr if item[9] != '']
-
-    StartAndEnd(dauky_bdkt, dauky)
-    StartAndEnd(nhap_bdkt, nhap)
-    StartAndEnd(xuat_bdkt, xuat)
-    StartAndEnd(sosanh_bdkt, sosanh)
-
-    Common()
-
-
-def CharSetSerials():
-    global inp, dauky, nhap, xuat, sosanh
-    inp = open('input.csv', encoding='utf-8-sig')
-    # Bỏ hai dòng đầu không đưa vào xử lý
-    inp.readline()
-    inp.readline()
-    r = reader(inp)  # Lấy phần dữ liệu còn lại đưa vào xử lý
-    arr = [row for row in r]
-
-    # Xử lý mảng arr thành 4 mảng như dưới
-    dauky = [item[0] for item in arr if item[0] != '']
-    nhap = [item[3] for item in arr if item[3] != '']
-    xuat = [item[6] for item in arr if item[6] != '']
-    sosanh = [item[9] for item in arr if item[9] != '']
-
-    Common()
-
-
-def main():
-    global log
-    print('--- CHƯƠNG TRÌNH CHECK SERIAL ---')
-    print('Mời bạn chọn chức năng:')
-    print('   0. Quick reset')
-    print('   1. Digit serials')
-    print('   2. Characterset serials')
-
-    while True:
-        choice = input('>> Lựa chọn của bạn (0|1|2): ')
-        if choice == '0':
-            QuickReset()
-            print('Done!')
-        elif choice == '1':
-            log = open('log.txt', 'w', encoding='utf-8-sig')
-            t = time()
-            DigitsSerials()
-            print('[Execution time]:', time()-t, 's', end='', file=log)
-            log.close()
-            break
-        elif choice == '2':
-            log = open('log.txt', 'w', encoding='utf-8-sig')
-            t = time()
-            CharSetSerials()
-            print('[Execution time]:', time()-t, 's', end='', file=log)
-            log.close()
-            break
-        elif choice == '':
-            break
-        else:
-            print('Bạn nhập không đúng, vui lòng nhập lại!')
-
-
-main()
+# Tự động mở file <output.txt>
+print('Đóng file <output.txt> => chương trình tự động thoát.')
+if platform == 'linux':
+    system('gedit output.txt')
+elif platform == 'win32':
+    system('notepad output.txt')
+elif platform == 'darwin':
+    system('textedit output.txt')
