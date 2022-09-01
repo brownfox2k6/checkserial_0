@@ -7,29 +7,27 @@ from time import localtime, strftime, time
 
 
 def StartEnd(tpl) -> tuple:
-    result = ()
+    result = []
     for item in tpl:
         try:
             start, end = map(int, item.split())
         except ValueError:
             start = end = int(item)
-        result += (range(start, end+1),)
-    return result
+        result.extend(range(start, end+1))
+    return tuple(result)
 
 
-def CheckDuplicate(arr, s):
-    if len(arr) != len(set(arr)):
-        counter = Counter(arr)
+def CheckDuplicate(array, string):
+    if len(array) != len(set(array)):
+        counter = Counter(array)
         for key in counter:
             if counter[key] > 1:
                 print('Serial {} xuất hiện {} lần ở <{}>'.format(
-                    key, counter[key], s))
-            else:
-                break
+                    key, counter[key], string))
         print()
 
 
-print('CHƯƠNG TRÌNH CHECK SERIAL')
+print('CHƯƠNG TRÌNH CHECK SERIAL\n')
 with open('input.txt', 'w', encoding='utf-8') as inp:
     inp.write('--- Đầu kỳ ---\n\n\n')
     inp.write('--- Nhập ---\n\n\n')
@@ -74,16 +72,18 @@ CheckDuplicate(xuat, 'Xuất')
 CheckDuplicate(sosanh, 'So sánh')
 
 # Đưa ra lời nhắc nếu có sự bất thường trong đầu vào
-if set(nhap) & set(dauky) != set():
+temporary = set(nhap) & set(dauky)
+if temporary != set():
     print('[!]  Có serial vừa có trong <đầu kỳ> vừa có trong <nhập>')
-    for item in sorted(set(nhap) & set(dauky)):
+    for item in sorted(temporary):
         print(item)
     print()
 
-if set(xuat) - (set(dauky) | set(nhap)) != set():
+temporary = set(xuat) - (set(dauky) | set(nhap))
+if temporary != set():
     print('[!]  Có serial có trong <xuất>\
 nhưng không có trong <đầu kỳ> và <nhập>')
-    for item in sorted(set(xuat) - (set(dauky) | set(nhap))):
+    for item in sorted(temporary):
         print(item)
     print()
 
