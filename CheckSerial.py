@@ -3,7 +3,7 @@ from os import getpid, system
 from psutil import Process
 from re import search
 from sys import platform
-from time import localtime, strftime, time
+from time import localtime, strftime, process_time
 
 
 def StartEnd(tpl) -> tuple:
@@ -18,13 +18,15 @@ def StartEnd(tpl) -> tuple:
 
 
 def CheckDuplicate(array, string):
-    if len(array) != len(set(array)):
+    LEN_ARRAY, LEN_SET = len(array), len(set(array))
+    if LEN_ARRAY != LEN_SET:
         counter = Counter(array)
         for key in counter:
             if counter[key] > 1:
                 print('Serial {} xuất hiện {} lần ở <{}>'.format(
                     key, counter[key], string))
         print()
+    return LEN_ARRAY, LEN_SET
 
 
 print('CHƯƠNG TRÌNH CHECK SERIAL\n')
@@ -42,9 +44,6 @@ elif platform == 'win32':
     system('notepad input.txt')
 elif platform == 'darwin':
     system('textedit input.txt')
-
-# Ghi nhận thời gian bắt đầu thực thi
-execTime = time()
 
 # Lấy tất cả dòng trong file <input.txt> trừ dòng trống
 with open('input.txt', encoding='utf-8') as inp:
@@ -66,10 +65,16 @@ if not search('[A-Za-z]', data):
     sosanh = StartEnd(sosanh)
 
 # Kiểm tra xem có các serial trùng lặp trong cùng một phần không
-CheckDuplicate(dauky, 'Đầu kỳ')
-CheckDuplicate(nhap, 'Nhập')
-CheckDuplicate(xuat, 'Xuất')
-CheckDuplicate(sosanh, 'So sánh')
+# và lấy dữ liệu độ dài mảng đầu vào và độ dài mảng sau khi lọc trùng lặp
+LEN_DAUKY, LEN_SET_DAUKY = CheckDuplicate(dauky, 'Đầu kỳ')
+LEN_NHAP, LEN_SET_NHAP = CheckDuplicate(nhap, 'Nhập')
+LEN_XUAT, LEN_SET_XUAT = CheckDuplicate(xuat, 'Xuất')
+LEN_SOSANH, LEN_SET_SOSANH = CheckDuplicate(sosanh, 'So sánh')
+
+print('[Dữ liệu đầu vào]:       Đầu kỳ: {}, Nhập: {}, Xuất: {}, So sánh: {}'.
+      format(LEN_DAUKY, LEN_NHAP, LEN_XUAT, LEN_SOSANH))
+print('[Sau khi lọc trùng lặp]: Đầu kỳ: {}, Nhập: {}, Xuất: {}, So sánh: {}'.
+      format(LEN_SET_DAUKY, LEN_SET_NHAP, LEN_SET_XUAT, LEN_SET_SOSANH))
 
 # Đưa ra lời nhắc nếu có sự bất thường trong đầu vào
 temporary = set(nhap) & set(dauky)
@@ -93,27 +98,19 @@ nhưng không có trong <đầu kỳ> và <nhập>')
 cuoiky = (set(dauky) | set(nhap)) - set(xuat)
 thieu = sorted(set(cuoiky) - set(sosanh))
 thua = sorted(set(sosanh) - set(cuoiky))
-print('[Kết quả]: Thiếu {}, Thừa {}'.format(len(thieu), len(thua)))
+print('[Kết quả]:               Thiếu: {}, Thừa: {}'.
+      format(len(thieu), len(thua)))
 
 # Ghi kết quả ra file <output.txt>
 with open('output.txt', 'w', encoding='utf-8') as out:
-    print('[Hiện tại]:', strftime("%d/%m/%Y %H:%M:%S", localtime()), file=out)
+    print('[Hiện tại]:', strftime('%a %d %b %Y %H:%M:%S',
+          localtime()), file=out)
     out.write('--- Thiếu ---\n')
     for item in thieu:
         print(item, file=out)
     out.write('\n--- Thừa ---\n')
     for item in thua:
         print(item, file=out)
-
-# Lấy thời gian thực thi
-execTime = time() - execTime      # Thời gian tính theo giây (s)
-ONE_SECOND = 1
-MILISECONDS_PER_SECOND = 1000     # 1 s = 1000 ms
-if execTime >= ONE_SECOND:
-    execTime = '{:.5f} s'.format(execTime)
-else:
-    execTime = '{:.5f} ms'.format(execTime * MILISECONDS_PER_SECOND)
-print('[Thời gian thực thi]:', execTime)
 
 # Lấy khoảng bộ nhớ đã sử dụng
 execMemory = Process(getpid()).memory_info().rss   # Bộ nhớ tính theo byte (B)
@@ -126,7 +123,17 @@ elif execMemory >= BYTES_PER_MEGABYTE:
     execMemory = '{:.5f} MB'.format(execMemory / BYTES_PER_MEGABYTE)
 else:
     execMemory = '{:.5f} KB'.format(execMemory / BYTES_PER_KILOBYTE)
-print('[Bộ nhớ sử dụng]:', execMemory)
+print('[Bộ nhớ sử dụng]:       ', execMemory)
+
+# Lấy thời gian thực thi
+execTime = process_time()         # Thời gian tính theo giây (s)
+ONE_SECOND = 1
+MILISECONDS_PER_SECOND = 1000     # 1 s = 1000 ms
+if execTime >= ONE_SECOND:
+    execTime = '{:.5f} s'.format(execTime)
+else:
+    execTime = '{:.5f} ms'.format(execTime * MILISECONDS_PER_SECOND)
+print('[Thời gian thực thi]:   ', execTime)
 
 # Tự động mở file <output.txt>
 print('Đóng file <output.txt> => chương trình tự động thoát.')
